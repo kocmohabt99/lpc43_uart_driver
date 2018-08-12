@@ -3,6 +3,7 @@ with Last_Chance_Handler;  pragma Unreferenced (Last_Chance_Handler);
 --  an exception is propagated. We need it in the executable, therefore it
 --  must be somewhere in the closure of the context clauses.
 
+with LPC43xx;             use LPC43xx;
 with LPC43xx.SCU;         use LPC43xx.SCU;
 with LPC43xx.GPIO_PORT;   use LPC43xx.GPIO_PORT;
 with LPC43xx.CCU1;        use LPC43xx.CCU1;
@@ -11,6 +12,8 @@ with LPC43xx.USART;       use LPC43xx.USART;
 with Ada.Real_Time;       use Ada.Real_Time;
 with Ada.Text_IO;         use Ada.Text_IO;
 
+with HAL;                 use HAL;
+with HAL.UART;            use HAL.UART;
 with lpc43_uart_d;        use lpc43_uart_d;
 
 procedure test is
@@ -209,9 +212,26 @@ procedure test is
 
    end Initialize_UART;
 
+   procedure dummy (pUART : in out pUSART);
+
+   procedure dummy (pUART : in out pUSART) is
+      pragma Unreferenced (pUART);
+   begin
+      USART2_Periph.SCR.PAD := Character'Pos ('b');
+   end dummy;
+
+   USART_2 : aliased pUSART (LPC43xx.USART.USART2_Periph'Access);
+
+   A : constant UART_Data_8b (0 .. 4) := (0, 0, 0, 0, 0);
+   A_status : UART_Status;
+
 begin
+
+
    Initialize_UART;
    Initialize_LEDs;
+   dummy (USART_2);
+   Transmit (USART_2, A, A_status, 500);
 
 
    loop
