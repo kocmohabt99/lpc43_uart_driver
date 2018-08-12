@@ -11,7 +11,7 @@ with LPC43xx.USART;       use LPC43xx.USART;
 with Ada.Real_Time;       use Ada.Real_Time;
 with Ada.Text_IO;         use Ada.Text_IO;
 
-with LPC43.USARTd; use LPC43.USARTd;
+with lpc43_uart_d;        use lpc43_uart_d;
 
 procedure test is
 
