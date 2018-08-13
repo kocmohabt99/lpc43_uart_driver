@@ -204,9 +204,9 @@ procedure test is
       --  Baud Rate Generation follows equation 6 on page 1135 of UM10503.
       --  Peripheral clock for USART2 is 204 MHz
 
-      USART2_Periph.FDR.MULVAL := 15;
+      USART2_Periph.FDR.MULVAL := 3;
 
-      USART2_Periph.FDR.DIVADDVAL := 5;
+      USART2_Periph.FDR.DIVADDVAL := 1;
       --  Baud Rate pre-scaler Divisor Value
       USART2_Periph.TER.TXEN := True;  --  Changed value from '1' to 'True'
 
@@ -232,7 +232,6 @@ begin
    Initialize_LEDs;
    dummy (USART_2);
    Transmit (USART_2, A, A_status, 500);
-
 
    loop
       --  Toggle (All_LEDs);
