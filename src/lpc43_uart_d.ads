@@ -5,7 +5,34 @@ with LPC43xx.USART;   use LPC43xx.USART;
 
 package lpc43_uart_d is
 
-   type pUSART (peripheral : not null access LPC43xx.USART.USART_Peripheral)
+   --  Not (yet) IMPLEMENTED:
+   --    procedure Enable_Interrupts
+   --    procedure Disable_Interrupts
+   --    function Interrupts_Enabled
+   --    procedure Enable_Transmit_Requests
+   --    procedure Disable_Transmit_Requests
+   --    function Transmit_Requests_Enabled
+   --    procedure Enable_Receive_Requests
+   --    procedure Disable_Receive_Requests
+   --    function Receive_Requests_Enabled
+   --    type Oversampling_Mode
+   --    procedure Set_Oversampling_Mode
+   --    type USART_Mode
+   --    procedure Set_mode
+   --    type Flow_Control
+   --    procedure Set_Flow_Control
+   --    type USART_Interrupt
+   --    procedure Enable_USART_Interrupts
+   --    procedure Disable_USART_Interrupts
+   --    function USART_Interrupts_Enabled
+   --    procedure Pause_DMA_Transmission
+   --    procedure Resume_DMA_Transmission
+   --    procedure Pause_DMA_Reception
+   --    procedure Resume_DMA_Reception
+
+   type Internal_USART is limited private;
+
+   type pUSART (peripheral : not null access Internal_USART)
      is limited new HAL.UART.UART_Port with private;
 
    type Baud_Rate_Presets is record
@@ -42,7 +69,7 @@ package lpc43_uart_d is
 
    function Enabled (This : pUSART) return Boolean with Inline;
 
-   procedure Put (This : in out pUSART; Data : out UInt8) with Inline;
+   procedure Put (This : in out pUSART; Data : UInt8) with Inline;
 
    procedure Get (This : pUSART; Data : out UInt8) with Inline;
 
@@ -110,7 +137,9 @@ package lpc43_uart_d is
 
 private
 
-   type pUSART (peripheral : not null access LPC43xx.USART.USART_Peripheral)
+   type Internal_USART is new LPC43xx.USART.USART_Peripheral;
+
+   type pUSART (peripheral : not null access Internal_USART)
      is limited new HAL.UART.UART_Port with null record;
 
 end lpc43_uart_d;

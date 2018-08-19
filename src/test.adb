@@ -10,11 +10,13 @@ with LPC43xx.CCU1;        use LPC43xx.CCU1;
 with LPC43xx.CCU2;        use LPC43xx.CCU2;
 with LPC43xx.USART;       use LPC43xx.USART;
 with Ada.Real_Time;       use Ada.Real_Time;
-with Ada.Text_IO;         use Ada.Text_IO;
+--  with Ada.Text_IO;         use Ada.Text_IO;
 
 with HAL;                 use HAL;
 with HAL.UART;            use HAL.UART;
 with lpc43_uart_d;        use lpc43_uart_d;
+
+with System;              use System;
 
 procedure test is
 
@@ -94,18 +96,73 @@ procedure test is
 
    end Initialize_LEDs;
 
-   procedure Initialize_UART;
-   --  Enables the clock and configures the GPIO pins and port connected to the
-   --  LEDs on the target board so that we can drive them via GPIO commands.
-   --  Note that the STM32.Board package provides a procedure (with the same
-   --  name) to do this directly, for convenience, but we do not use it here
-   --  for the sake of illustration.
+   procedure Initialize_UART2;
 
-   procedure Initialize_UART is
+   procedure Initialize_UART2 is
 
    begin
-      --  Initialized := True;
-      SCU_Periph.SFSP7 (1).EPD := Disable_Pull_Down;
+
+      --  Start chip_uart_init
+
+      CCU1_Periph.CLK_M4_USART2_CFG.AUTO := Enabled;
+      CCU1_Periph.CLK_M4_USART2_CFG.WAKEUP := Enabled;
+      CCU1_Periph.CLK_M4_USART2_CFG.RUN := Enabled;
+
+      USART2_Periph.FCR.FIFOEN := Enabled;
+      USART2_Periph.FCR.TXFIFORES := Clear;
+      USART2_Periph.FCR.RXFIFORES := Clear;
+
+      USART2_Periph.TER.TXEN := False;
+
+      USART2_Periph.IER.RBRIE := Disable;
+      USART2_Periph.IER.THREIE := Disable;
+      USART2_Periph.IER.RXIE := Disable;
+      USART2_Periph.IER.ABEOINTEN := Disable;
+      USART2_Periph.IER.ABTOINTEN := Disable;
+
+      USART2_Periph.LCR.WLS := Val_5_Bit_Character_Leng;
+      USART2_Periph.LCR.SBS := Val_1_Stop_Bit;
+      USART2_Periph.LCR.PE := Disable_Parity_Gener;
+      USART2_Periph.LCR.PS := Odd_Parity;
+      USART2_Periph.LCR.BC := Disabled;
+      USART2_Periph.LCR.DLAB := Disabled;
+
+      USART2_Periph.RS485CTRL.NMMEN := Disabled;
+      USART2_Periph.RS485CTRL.RXDIS := Enabled;
+      USART2_Periph.RS485CTRL.AADEN := Disabled;
+      USART2_Periph.RS485CTRL.DCTRL := Disabled;
+      USART2_Periph.RS485CTRL.OINV := Low;
+
+      USART2_Periph.RS485DLY.DLY := 0;
+      USART2_Periph.RS485ADRMATCH.ADRMATCH := 0;
+
+
+      USART2_Periph.LCR.WLS := Val_8_Bit_Character_Leng;
+      USART2_Periph.LCR.SBS := Val_1_Stop_Bit;
+      --  USART2_Periph.LCR.SBS := Val_2_Stop_Bits_1;
+      USART2_Periph.LCR.PE := Disable_Parity_Gener;
+
+      USART2_Periph.FDR.DIVADDVAL := 0;  --  Modified to 5 instead of 0
+      USART2_Periph.FDR.MULVAL := 1;  --  Modified to 15 instead of 1
+
+      --  end chip_uart_init
+
+      --  start chip_uart_setbaud
+
+      USART2_Periph.LCR.DLAB := Enabled;
+      USART2_Periph.DLL.DLLSB := 111;  --  Modified to 83 from 111
+      USART2_Periph.DLM.DLMSB := 0;
+      USART2_Periph.LCR.DLAB := Disabled;
+
+      --  end chip_uart_setbaud
+
+
+      USART2_Periph.FCR.FIFOEN := Enabled;
+      USART2_Periph.FCR.RXTRIGLVL := Level_0;
+
+      USART2_Periph.TER.TXEN := True;
+
+      SCU_Periph.SFSP7 (1).EPD := Enable_Pull_Down;
       SCU_Periph.SFSP7 (1).EPUN := Disable_Pull_Up;
       SCU_Periph.SFSP7 (1).MODE := Function_6;
 
@@ -115,102 +172,7 @@ procedure test is
       SCU_Periph.SFSP7 (2).ZIF := Disable_Input_Glitch;
       SCU_Periph.SFSP7 (2).MODE := Function_6;
 
-      CCU1_Periph.CLK_M4_USART2_CFG.RUN := Enabled;
-      CCU1_Periph.CLK_M4_USART2_CFG.AUTO := Enabled;
-      CCU1_Periph.CLK_M4_USART2_CFG.WAKEUP := Enabled;
-
-      CCU2_Periph.CLK_APB2_USART2_CFG.RUN := Enabled;
-      CCU2_Periph.CLK_APB2_USART2_CFG.AUTO := Enabled;
-      CCU2_Periph.CLK_APB2_USART2_CFG.WAKEUP := Enabled;
-
-      --  FIFO Control Register (FCR)
-      --  FIFO Enable (FIFOEN)
-      USART2_Periph.FCR.FIFOEN := Enabled;
-      --  Transmit FIFO Reset (TXFIFORES)
-      USART2_Periph.FCR.TXFIFORES := Clear;
-      --  Receive FIFO Reset (RXFIFORES)
-      USART2_Periph.FCR.RXFIFORES := Clear;
-
-      --  Transmit Enable Register
-      --  Transmit Enable (TXEN)
-      USART2_Periph.TER.TXEN := False;  --  Changed value from '0' to 'False'
-
-      --  Interrupt Enable Register (IER)
-      --  Receiver Buffer Register Interrupt Enable (RBRIE)
-      USART2_Periph.IER.RBRIE := Disable;
-      --  THRE Interrupt Enable (THREIE)
-      USART2_Periph.IER.THREIE := Disable;
-      --  Receive Interrupt Enable (RXIE)
-      USART2_Periph.IER.RXIE := Disable;
-      --  Auto-Baud End Of Interrupt Enable (ABEOINTEN)
-      USART2_Periph.IER.ABEOINTEN := Disable;
-      --  Auto-Baud Time Out Interrupt Enable (ABTOINTEN)
-      USART2_Periph.IER.ABTOINTEN := Disable;
-
-      --  Line Control Register (LCR)
-      --  Word Length Select (WLS)
-      USART2_Periph.LCR.WLS := Val_8_Bit_Character_Leng;
-      --  Stop Bit Select (SBS)
-      USART2_Periph.LCR.SBS := Val_2_Stop_Bits_1;
-      --  Parity Enable (PE)
-      USART2_Periph.LCR.PE := Disable_Parity_Gener;
-      --  Parity Select (PS)
-      USART2_Periph.LCR.PS := Odd_Parity;
-      --  Break Control (BC)
-      USART2_Periph.LCR.BC := Disabled;
-      --  Divisor Latch Access Bit (DLAB)
-      USART2_Periph.LCR.DLAB := Disabled;
-
-      --  Auto-Baud Control Register (ACR)
-      --  Start Bit
-      USART2_Periph.ACR.START := Stop;
-      --  Auto-Baud Mode Select Bit
-      USART2_Periph.ACR.MODE := Mode_0;
-      USART2_Periph.ACR.AUTORESTART := No_Restart;
-      --  Auto-Baud End Of Interrupt Clear Bit
-      USART2_Periph.ACR.ABEOINTCLR := No_Effect;
-      --  Auto-Baud Time Out Interrupt Clear Bit
-      USART2_Periph.ACR.ABTOINTCLR := No_Effect;
-
-      --  RS485 Control
-      --  Normal Multidrop Mode Enable
-      USART2_Periph.RS485CTRL.NMMEN := Disabled;
-      --  Receive Disable
-      USART2_Periph.RS485CTRL.RXDIS := Enabled;
-      --  Auto Address Detect Enable
-      USART2_Periph.RS485CTRL.AADEN := Disabled;
-      --  Direction Control
-      USART2_Periph.RS485CTRL.DCTRL := Disabled;
-      --  Direction Control Pin Polarity
-      USART2_Periph.RS485CTRL.OINV := Low;
-
-      --  RS485 Delay Value Register
-      USART2_Periph.RS485DLY.DLY := 0;
-
-      --  RS485 Address Match Register
-      USART2_Periph.RS485ADRMATCH.ADRMATCH := 0;
-      --  Divisor Latch Access Bit (DLAB)
-      USART2_Periph.LCR.DLAB := Enabled;
-      --  Divisor Latch LSB
-      USART2_Periph.DLL.DLLSB := 83;
-      --  Divisor Latch MSB
-      USART2_Periph.DLM.DLMSB := 0;
-      --  Divisor Latch Access Bit (DLAB)
-      USART2_Periph.LCR.DLAB := Disabled;
-
-      --  Fractional Divider Register (FDR)
-      --  Baud Rate pre-scaler Multiplier Value
-
-      --  Baud Rate Generation follows equation 6 on page 1135 of UM10503.
-      --  Peripheral clock for USART2 is 204 MHz
-
-      USART2_Periph.FDR.MULVAL := 3;
-
-      USART2_Periph.FDR.DIVADDVAL := 1;
-      --  Baud Rate pre-scaler Divisor Value
-      USART2_Periph.TER.TXEN := True;  --  Changed value from '1' to 'True'
-
-   end Initialize_UART;
+   end Initialize_UART2;
 
    procedure dummy (pUART : in out pUSART);
 
@@ -220,19 +182,36 @@ procedure test is
       USART2_Periph.SCR.PAD := Character'Pos ('b');
    end dummy;
 
-   USART_2 : aliased pUSART (LPC43xx.USART.USART2_Periph'Access);
+   USART2_Base : constant System.Address :=
+     System'To_Address (16#400C1000#);  --  Comes from lpc43xx.svd
 
-   A : constant UART_Data_8b (0 .. 4) := (0, 0, 0, 0, 0);
-   A_status : UART_Status;
+   Internal_USART2 : aliased Internal_USART
+     with Import, Volatile, Address => USART2_Base;
+   --  Belongs in lpc43xx.device (NOT IMPLEMENTED)
+
+   USART_2 : aliased pUSART (Internal_USART2'Access);
+   --  Belongs in lpc43xx.device (NOT IMPLEMENTED)
+
+
+   --  pragma Unreferenced (USART_2, A, A_status);
+
+   B : UART_Data_8b (0 .. 7);
+   --  LEDs : array (0 .. 5) of Boolean := (others => False);
+   A : constant UART_Data_8b (0 .. 7) := (0, 1, 2, 3, 4, 5, 6, 7);
+   --  A : UART_Data_8b (0 .. 1) := (64, 64);
+   --  A : UART_Data_8b (0 .. 0);
+   --  B : constant UART_Data_8b (0 .. 3) := (84, 82, 85, 69);
+   --  C : constant UART_Data_8b (0 .. 4) := (70, 65, 76, 83, 69);
+   --  C : constant UART_Data_8b (0 .. 2) := (78, 79, 33);
+   A_status : UART_Status := Ok;
+   --  current_status : Boolean;
 
 begin
 
-
-   Initialize_UART;
+   Initialize_UART2;
    Initialize_LEDs;
-   dummy (USART_2);
-   Transmit (USART_2, A, A_status, 500);
-
+   Transmit (USART_2, A, A_status, 100);
+   --  current_status := USART_2.RX_Ready;
    loop
       --  Toggle (All_LEDs);
 
@@ -243,10 +222,14 @@ begin
       --  P2_11 -> GPIO(1)[11] -> LED2
       --  P2_12 -> GPIO(1)[12] -> LED3
 
-      GPIO_PORT_Periph.NOT_k (5) := (As_Array => True,
-                                 Arr => (0 => True, others => <>));
+      --  A := (109, 97, 114, 116, 105, 110, 99, 97, 114, 97, 100, 101, 99, 104,
+      --        111, 114, 108, 105, 116, 111);
 
-      Put_Line ("Hello World!");
+      if USART_2.RX_Ready then
+         B := (others => 00);
+         Receive (USART_2, B, A_status, 500);
+         Transmit (USART_2, B, A_status, 500);
+      end if;
 
       Next_Release := Next_Release + Period;
       delay until Next_Release;
